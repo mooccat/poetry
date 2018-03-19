@@ -1,0 +1,182 @@
+<style lang="scss">
+@import '../zanui/btn.scss';
+@import '../zanui/panel.scss';
+
+.container {
+  .info {
+    width: 100%;
+    position: fixed;
+    top: 0px;
+  }
+  .panel-container {
+    width: 100%;
+    margin-top: 35px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px 0px #000000;
+    picker {
+      width: 100%;
+    }
+    .btnGroup {
+      align-self: flex-end;
+      margin-top: 10px;
+    }
+    .result {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+}
+</style>
+<template>
+    <block>
+
+        <view class="container">
+            <view class="info">
+                <zanNoticebar1 :text="longText" componentId="movable"></zanNoticebar1>
+            </view>
+            <view class="panel-container">
+                <view class="zan-cell zan-field">
+                    <view class="zan-cell__hd zan-field__title">选择类型</view>
+                    <picker mode="selector" range="{{picker.style}}" bindchange="selectStyle">{{picker.style[picker.index]}}</picker>
+                </view>
+                <zanField1 :options="author" :value="author.value" componentId="zanField1"></zanField1>
+                <zanField2 :options="text" :value="text.value" componentId="zanField2" wx:if="{{picker.index != 0}}"></zanField2>
+                <view class="btnGroup">
+                    <button class="zan-btn zan-btn--small" bindtap="reset">重置输入</button>
+                    <button class="zan-btn zan-btn--small zan-btn--primary" bindtap="write">{{write_btn}}</button>
+                </view>
+                <view class="result" wx:if="{{poem.show}}">
+                    <view class="zan-panel-title">{{text.value?text.value:'无题'}}</view>
+                    <view class="zan-panel">
+                        <view style="padding: 15px;">
+                            <text class="zan-font-12" style="color:#999">作者：{{author.value}}\n</text>
+                            <text wx:for="{{poem.data}}" wx:for-item="content">{{content}}。\n</text>
+                        </view>
+                    </view>
+                    <view class="btnGroup">
+                        <button class="zan-btn zan-btn--small" bindtap="write">再来一首</button>
+                        <button class="zan-btn zan-btn--small zan-btn--primary" bindtap="goShare">去分享</button>
+                    </view>
+                </view>
+            </view>
+        </view>
+        <zanToptips/>
+    </block>
+
+</template>
+
+<script>
+import wepy from 'wepy';
+import zanNoticebar from '../components/zan-noticebar';
+import zanField from '../components/zan-field';
+import zanToptips from '../components/zan-toptips';
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '智能作诗',
+    navigationBarBackgroundColor: '#0FA4B0',
+    onPullDownRefresh: false
+  };
+  components = {
+    zanNoticebar1: zanNoticebar,
+    zanField1: zanField,
+    zanField2: zanField,
+    zanToptips: zanToptips
+  };
+
+  mixins = [];
+
+  data = {
+    write_btn: '开始作诗',
+    longText: '人工智能机器人为你写诗，包括藏头诗，藏字诗，自由诗',
+    picker: {
+      style: ['自由诗', '藏头诗', '藏字诗'],
+      index: 1
+    },
+    author: {
+      title: '作者',
+      placeholder: '名字',
+      value: '机器人'
+    },
+    text: {
+      title: '文字',
+      placeholder: '四个藏头字或者任意字',
+      value: ''
+    },
+    poem: {
+      data: [],
+      show: false
+    }
+  };
+
+  computed = {};
+
+  methods = {
+    selectStyle(e) {
+      this.picker.index = e.detail.value
+      this.$apply()
+    },
+    reset(e) {
+      this.picker.index = 1
+      this.$invoke('zanField1', 'clear')
+      this.$invoke('zanField2', 'clear')
+      this.$apply();
+    },
+    async write(e) {
+      if (this.author.value == '') {
+        this.$invoke('zanToptips', 'showZanTopTips', {
+          content: '请输入作者名称',
+          options: 1000
+        });
+        return false;
+      }
+      if (this.picker.index != 0 && this.text.value == '') {
+        this.$invoke('zanToptips', 'showZanTopTips', {
+          content: '请输入藏头字',
+          options: 1000
+        });
+        return false;
+      }
+      let poem = await wepy.request({
+        method: 'GET',
+        url: 'https://poem.fishliu.com/poem',
+        data: {
+          style: parseInt(this.picker.index) + 2,
+          start: this.text.value
+        }
+      });
+      this.poem.show = true;
+      this.poem.data = poem.data.split('。').slice(0, -1);
+      this.$apply();
+    },
+    goShare() {
+     let title = this.text.value?this.text.value:'无题';
+     var url = 'share?title=' + title + '&author=' + this.author.value + '&poem=' + this.poem.data;
+      wepy.navigateTo({
+        url: url
+      });
+    }
+  };
+
+  events = {
+    zanFieldChange(e) {
+      const { componentId, detail } = e;
+      if (componentId == 'zanField1') {
+        this.author.value = detail.value;
+      }
+      if (componentId == 'zanField2') {
+        this.text.value = detail.value;
+      }
+      this.$apply();
+    }
+  };
+  async onLoad() {}
+  onReady() {
+    this.$invoke('zanNoticebar1', 'initZanNoticeBarScroll');
+  }
+}
+</script>

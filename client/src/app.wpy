@@ -1,0 +1,94 @@
+<style lang="css">
+@import '/zanui/helper.wxss';
+@import '/zanui/icon.wxss';
+
+page {
+  background: #e8e8e8;
+}
+.container {
+  height: 100%;
+  padding: 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+</style>
+
+<script>
+import wepy from 'wepy';
+import 'wepy-async-function';
+
+export default class extends wepy.app {
+  config = {
+    pages: ['pages/write','pages/list', 'pages/share','pages/index'],
+    tabBar: {
+      backgroundColor: '#FFFAD3',
+      selectedColor: '#00C777',
+      list: [
+        {
+          pagePath: 'pages/write',
+          text: '智能写诗',
+          iconPath: 'img/shiren-squashed.png',
+          selectedIconPath: 'img/shiren-active.png'
+        },
+        {
+          pagePath: 'pages/list',
+          text: '诗词大全',
+          iconPath: 'img/shi-squashed.png',
+          selectedIconPath: 'img/shi-active.png'
+        },
+        {
+          pagePath: 'pages/index',
+          text: '我的',
+          iconPath: 'img/wode-squashed.png',
+          selectedIconPath: 'img/wode_active-squashed.png'
+        }
+      ]
+    },
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#fff',
+      navigationBarTitleText: 'WeChat',
+      navigationBarTextStyle: 'black'
+    }
+  };
+
+  globalData = {
+    userInfo: null,
+    host: 'http://192.168.123.238:8360/api/',
+    netUser: null
+  };
+
+  constructor() {
+    super();
+    this.use('requestfix');
+    this.use('promisify');
+  }
+  async onLaunch() {
+    let loginRes = await wepy.login();
+    let userInfo = await this.getUserInfo();
+    let weLogin = await wepy.request({
+      method: 'POST',
+      url: this.getUrl('user/weLogin'),
+      data: {
+        userInfo: userInfo.userInfo,
+        code: loginRes.code
+      }
+    });
+    this.globalData.netUser = weLogin.data.data;
+  }
+  getUrl(str) {
+    return this.globalData.host + str;
+  }
+  async getUserInfo() {
+    if (this.globalData.userInfo) {
+      return this.globalData.userInfo;
+    }
+    let userInfo = await wepy.getUserInfo();
+    this.globalData.userInfo = userInfo.userInfo;
+    return userInfo;
+  }
+}
+</script>

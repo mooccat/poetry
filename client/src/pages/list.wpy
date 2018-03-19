@@ -1,0 +1,212 @@
+<style lang="scss">
+.container {
+  .info {
+    width: 100%;
+    position: fixed;
+    top: 0px;
+  }
+  .icon_input {
+    width: 100%;
+    position: fixed;
+    top: 40px;
+    .zan-icon {
+      position: absolute;
+      top: 5px;
+      left: 10px;
+      z-index: 9999;
+      color: #757575;
+    }
+    .input {
+      background: #ffffff;
+      font-size: 16px;
+      line-height: 24px;
+      padding: 5px;
+      border-radius: 8px;
+      padding-left: 30px;
+    }
+  }
+  .panel-container {
+    width: 100%;
+    margin-top: 55px;
+    .panel {
+      width: 100%;
+      margin: 30rpx 0 0 0;
+      background: #ffffff;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px 0px #000000;
+      .header {
+        height: 35px;
+        padding: 5px;
+        border-radius: 5px;
+        background-image: linear-gradient(-180deg, #ffffff 0%, #f9f9f9 100%);
+        box-shadow: 0 0 0 0 #c7c7cd, inset 0 0 0 0 #ebebeb;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        .left {
+          .title {
+            font-size: 18px;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #000000;
+            display: block;
+          }
+          .author {
+            font-size: 10px;
+            color: #c7c7cd;
+            display: block;
+          }
+        }
+        .right {
+          .sort {
+            font-size: 12px;
+            color: #b2b2b2;
+          }
+        }
+      }
+      .content {
+        font-family: LiSongPro;
+        font-size: 13px;
+        color: #000000;
+        letter-spacing: 0;
+        line-height: 21px;
+        padding: 5px;
+      }
+    }
+    .refresh {
+      margin-top: 5px;
+      font-size: 12px;
+      display: block;
+      text-align: center;
+    }
+  }
+}
+</style>
+<template>
+  <view class="container">
+    <view class="info">
+      <zanNoticebar1 :text="longText" componentId="movable"></zanNoticebar1>
+    </view>
+    <view class="icon_input">
+      <view class="zan-icon zan-icon-search"></view>
+      <input class="input search" bindconfirm="search" bindblur="search" placeholder="输入诗词名或作者名" />
+    </view>
+    <view class="panel-container">
+      <view wx:for="{{res.data}}" wx:key="_id" wx:for-index="idx" wx:for-item="poetry" class="panel">
+        <view class="header">
+          <view class="left">
+            <text class="title">{{poetry.title}}\n</text>
+            <text class="author">{{poetry.author}}</text>
+          </view>
+          <view class="right">
+            <text class="sort">{{poetry.decade=='song'?'宋':'唐'}}{{poetry.sort}}</text>
+          </view>
+        </view>
+        <view class="content">
+          <text wx:for="{{poetry.paragraphs}}" wx:for-item="paragraph">{{paragraph}}\n</text>
+        </view>
+        <view class="footer"></view>
+      </view>
+      <text class="refresh" wx:if="{{res.count > offset + limit}}">下拉刷新</text>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy';
+import zanNoticebar from '../components/zan-noticebar';
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '诗词列表',
+    navigationBarBackgroundColor: '#0FA4B0',
+    onPullDownRefresh: true
+  };
+  components = {
+    zanNoticebar1: zanNoticebar
+  };
+
+  mixins = [];
+
+  data = {
+    loadmore: {
+      loading: true,
+      nodata: false
+    },
+    longText:
+      '收录了包含5.5万首唐诗、26万首宋诗和2.1万首宋词. 唐宋两朝近1.4万古诗人, 和两宋时期1.5K词人.',
+    limit: 10,
+    offset: 1,
+    searchStr: null,
+    res: {
+      data: [],
+      count: 0
+    }
+  };
+
+  computed = {};
+
+  methods = {
+    async search(e) {
+      this.offset = 0;
+      this.searchStr = e.detail.value;
+      wepy.showNavigationBarLoading();
+      this.res = {};
+      this.res = await this.getPoetry(this.searchStr);
+      wepy.hideNavigationBarLoading();
+      this.$apply();
+    }
+  };
+
+  events = {};
+  async getPoetry(searchStr) {
+    let data;
+    if (searchStr) {
+      data = {
+        limit: this.limit,
+        offset: this.offset,
+        searchStr: this.searchStr
+      };
+      let getPoetry = await wepy.request({
+        method: 'GET',
+        url: this.$parent.getUrl('poetry/search'),
+        data: data
+      });
+      return getPoetry.data.data;
+    } else {
+      data = {
+        limit: this.limit,
+        offset: this.offset
+      };
+      let getPoetry = await wepy.request({
+        method: 'GET',
+        url: this.$parent.getUrl('poetry'),
+        data: data
+      });
+      return getPoetry.data.data;
+    }
+  }
+  async onReachBottom() {
+    if (this.res.count > this.offset + this.limit) {
+      wepy.showNavigationBarLoading();
+      this.offset += this.limit;
+      let getPoetry = await this.getPoetry(this.searchStr);
+      this.res.data = this.res.data.concat(getPoetry.data);
+      wepy.stopPullDownRefresh();
+      wepy.hideNavigationBarLoading();
+      this.$apply();
+    }
+  }
+  async onLoad() {
+    wepy.showNavigationBarLoading();
+    this.res = await this.getPoetry(this.searchStr);
+    wepy.hideNavigationBarLoading();
+    this.$apply();
+  }
+  onReady() {
+    this.$invoke('zanNoticebar1', 'initZanNoticeBarScroll');
+  }
+}
+</script>

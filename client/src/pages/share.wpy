@@ -1,0 +1,102 @@
+<style lang="scss">
+@import '../zanui/btn.scss';
+@import '../zanui/panel.scss';
+
+.container {
+  width: 100%;
+  padding: 0px;
+  .panel {
+    background: #fff;
+    width: 700rpx;
+    padding: 15rpx;
+    image {
+      width: 700rpx;
+    }
+    text {
+      display: block;
+      font-family: STSongti-SC-Light;
+      font-size: 18px;
+      color: #000000;
+      letter-spacing: 0;
+      line-height: 21px;
+    }
+    .author {
+      float: right;
+      font-size: 12px;
+    }
+  }
+  .btnGroup {
+    align-self: flex-end;
+    margin-top: 10px;
+  }
+}
+</style>
+<template>
+    <block>
+        <view class="container">
+            <view class="panel">
+                <image src="../img/gufeng-squashed.png" mode="aspectFill"></image>
+                <view class="zan-panel-title">{{title}}</view>
+                <view class="zan-panel">
+                    <view style="padding: 15px;">
+                        <text wx:for="{{poem}}" wx:for-item="content">{{content}}。</text>
+                        <text class="author">by:{{author}}</text>
+                    </view>
+                </view>
+            </view>
+            <view class="btnGroup">
+                <button class="zan-btn zan-btn--small" bindtap="goWrite">智能写诗</button>
+                <button class="zan-btn zan-btn--small zan-btn--primary" open-type="share">去分享</button>
+            </view>
+        </view>
+        <zanToptips/>
+    </block>
+
+</template>
+
+<script>
+import wepy from 'wepy';
+import zanNoticebar from '../components/zan-noticebar';
+import zanField from '../components/zan-field';
+import zanToptips from '../components/zan-toptips';
+
+export default class Index extends wepy.page {
+  config = {
+    navigationBarTitleText: '分享页面',
+    navigationBarBackgroundColor: '#0FA4B0',
+    onPullDownRefresh: false
+  };
+  components = {
+    zanNoticebar1: zanNoticebar,
+    zanField1: zanField,
+    zanField2: zanField,
+    zanToptips: zanToptips
+  };
+
+  mixins = [];
+
+  data = {
+    title: '',
+    author: '',
+    poem: []
+  };
+
+  computed = {};
+
+  methods = {
+    goWrite() {
+      wepy.switchTab({
+        url: 'write'
+      });
+    }
+  };
+
+  events = {};
+  async onLoad(options) {
+    this.title = options.title;
+    this.author = options.author;
+    this.poem = options.poem.split(',');
+    this.$apply();
+  }
+}
+</script>
